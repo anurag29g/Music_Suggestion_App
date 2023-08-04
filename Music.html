@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Music Suggestion App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #222;
+            color: #fff;
+        }
+
+        h1 {
+            color: #fff;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        form {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #333;
+            border: none;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            background-color: #444;
+            color: #fff;
+        }
+
+        .input-container {
+            position: relative;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #555;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            z-index: 1;
+            display: none;
+        }
+
+        .dropdown-menu-item {
+            padding: 8px 10px;
+            cursor: pointer;
+        }
+
+        .dropdown-menu-item:hover {
+            background-color: #666;
+        }
+
+        button[type="submit"] {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #artistRecommendations,
+        #songRecommendations {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #fff;
+        }
+
+        #artistRecommendations ul,
+        #songRecommendations ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #artistRecommendations li,
+        #songRecommendations li {
+            margin-bottom: 5px;
+        }
+     </style>
+</head>
+<body>
+<h1>Music Suggestion App</h1>
+<form id="artistForm">
+    <div class="input-container">
+        <label for="artistInput">Enter an artist you like:</label>
+        <input type="text" id="artistInput" required autocomplete="off">
+        <div class="dropdown-menu" id="artistDropdown"></div>
+    </div>
+    <button type="submit">Get Artist Recommendations</button>
+</form>
+<div id="artistRecommendations"></div>
+
+<form id="songForm">
+    <div class="input-container">
+        <label for="songArtistInput">Enter the artist of the song:</label>
+        <input type="text" id="songArtistInput" required>
+        <div class="dropdown-menu" id="songArtistDropdown"></div>
+    </div>
+    <div class="input-container">
+        <label for="songInput">Enter a song name:</label>
+        <input type="text" id="songInput" required>
+        <div class="dropdown-menu" id="songDropdown"></div>
+    </div>
+    <button type="submit">Get Song Recommendations</button>
+</form>
+<div id="songRecommendations"></div>
+<div id="savedRecommendations">
+    <h2>Saved Recommendations:</h2>
+    <ul id="savedList"></ul>
+</div>
+
+
+<script>
+    var artistInput = document.getElementById("artistInput");
+    var artistDropdown = document.getElementById("artistDropdown");
+    var songArtistInput = document.getElementById("songArtistInput");
+    var songArtistDropdown = document.getElementById("songArtistDropdown");
+    var songInput = document.getElementById("songInput");
+    var songDropdown = document.getElementById("songDropdown");
+
+    artistInput.addEventListener("input", function () {
+        var artistQuery = this.value;
+        if (artistQuery.length > 0) {
+            getArtistSuggestions(artistQuery, artistDropdown);
+        } else {
+            hideDropdown(artistDropdown);
+        }
+    });
+
+    artistInput.addEventListener("focusout", function () {
+        setTimeout(function () {
+            hideDropdown(artistDropdown);
+        }, 200);
+    });
+
+    artistDropdown.addEventListener("mousedown", function (event) {
+        event.preventDefault();
+    });
+
+    artistDropdown.addEventListener("click", function (event) {
+        var target = event.target;
+        if (target.classList.contains("dropdown-menu-item")) {
+            artistInput.value = target.textContent;
+            hideDropdown(artistDropdown);
+        }
+    });
+
+    songArtistInput.addEventListener("input", function () {
+        var artistQuery = this.value;
+        if (artistQuery.length > 0) {
+            getArtistSuggestions(artistQuery, songArtistDropdown);
+        } else {
+            hideDropdown(songArtistDropdown);
+        }
+    });
+
+    songArtistInput.addEventListener("focusout", function () {
+        setTimeout(function () {
+            hideDropdown(songArtistDropdown);
+        }, 200);
+    });
+
+    songArtistDropdown.addEventListener("mousedown", function (event) {
+        event.preventDefault();
+    });
+
+    songArtistDropdown.addEventListener("click", function (event) {
+        var target = event.target;
+        if (target.classList.contains("dropdown-menu-item")) {
+            songArtistInput.value = target.textContent;
+            hideDropdown(songArtistDropdown);
+        }
+    });
+
+    songInput.addEventListener("input", function () {
+        var songQuery = this.value;
+        if (songQuery.length > 0) {
+            getSongSuggestions(songQuery, songArtistInput.value, songDropdown);
+        } else {
+            hideDropdown(songDropdown);
+        }
+    });
+
+    songInput.addEventListener("focusout", function () {
+        setTimeout(function () {
+            hideDropdown(songDropdown);
+        }, 200);
+    });
+
+    songDropdown.addEventListener("mousedown", function (event) {
+        event.preventDefault();
+    });
+
+    songDropdown.addEventListener("click", function (event) {
+        var target = event.target;
+        if (target.classList.contains("dropdown-menu-item")) {
+            songInput.value = target.textContent;
+            hideDropdown(songDropdown);
+        }
+    });
+
+    document.getElementById("artistForm").addEventListener("submit", function (
+        event
+    ) {
+        event.preventDefault();
+        var artistInputValue = artistInput.value;
+        getArtistRecommendations(artistInputValue);
+    });
+
+    document.getElementById("songForm").addEventListener("submit", function (event) {
+        event.preventDefault();
+        var songArtist = songArtistInput.value;
+        var songName = songInput.value;
+        getSongRecommendations(songArtist, songName);
+    });
+
+    // Replace 'YOUR_API_KEY' with your actual Last.fm API key
+    const LASTFM_API_KEY = 'fa39aa08ceab6fecd10e3e25c91a69f7';
+
+    function getArtistSuggestions(artistQuery, dropdown) {
+        var apiUrl = `https://ws.audioscrobbler.com/2.0/?method=artist.search&artist=${encodeURIComponent(
+            artistQuery
+        )}&api_key=${LASTFM_API_KEY}&format=json`;
+
+        fetch(apiUrl)
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                var artists = data.results.artistmatches.artist;
+                var suggestions = "";
+                if (artists.length > 0) {
+                    for (var i = 0; i < artists.length; i++) {
+                        var artist = artists[i].name;
+                        suggestions += `<div class="dropdown-menu-item">${artist}</div>`;
+                    }
+                }
+                dropdown.innerHTML = suggestions;
+                showDropdown(dropdown);
+            })
+            .catch(function (error) {
+                console.log("An error occurred:", error);
+            });
+    }
+
+    function getSongSuggestions(songQuery, artist, dropdown) {
+        var apiUrl = `https://ws.audioscrobbler.com/2.0/?method=track.search&artist=${encodeURIComponent(
+            artist
+        )}&track=${encodeURIComponent(songQuery)}&api_key=${LASTFM_API_KEY}&format=json`;
+
+        fetch(apiUrl)
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                var tracks = data.results.trackmatches.track;
+                var suggestions = "";
+                if (tracks.length > 0) {
+                    for (var i = 0; i < tracks.length; i++) {
+                        var track = tracks[i].name;
+                        suggestions += `<div class="dropdown-menu-item">${track}</div>`;
+                    }
+                }
+                dropdown.innerHTML = suggestions;
+                showDropdown(dropdown);
+            })
+            .catch(function (error) {
+                console.log("An error occurred:", error);
+            });
+    }
+
+    function showDropdown(dropdown) {
+        dropdown.style.display = "block";
+    }
+
+    function hideDropdown(dropdown) {
+        dropdown.style.display = "none";
+    }
+
+    function getArtistRecommendations(artist) {
+        var apiUrl = `https://ws.audioscrobbler.com/2.0/?method=artist.getSimilar&artist=${encodeURIComponent(
+            artist
+        )}&api_key=${LASTFM_API_KEY}&format=json`;
+
+        fetch(apiUrl)
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                var similarArtists = data.similarartists.artist;
+                var recommendations = "";
+                if (similarArtists.length > 0) {
+                    recommendations += "<ul>";
+                    for (var i = 0; i < similarArtists.length; i++) {
+                        var artist = similarArtists[i].name;
+                        recommendations += `<li>${artist}</li>`;
+                    }
+                    recommendations += "</ul>";
+                } else {
+                    recommendations = "No artist recommendations found.";
+                }
+                document.getElementById("artistRecommendations").innerHTML =
+                    "<h2>Artist Recommendations:</h2>" + recommendations;
+            })
+            .catch(function (error) {
+                console.log("An error occurred:", error);
+            });
+    }
+
+    function getSongRecommendations(artist, song) {
+        var apiUrl = `https://ws.audioscrobbler.com/2.0/?method=track.getSimilar&artist=${encodeURIComponent(
+            artist
+        )}&track=${encodeURIComponent(song)}&api_key=${LASTFM_API_KEY}&format=json`;
+
+        fetch(apiUrl)
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                var similarTracks = data.similartracks.track;
+                var recommendations = "";
+
+                if (similarTracks.length > 0) {
+                    recommendations = "<ul>";
+
+                    for (var i = 0; i < similarTracks.length; i++) {
+                        var track = similarTracks[i];
+                        var artist = track.artist.name;
+                        var trackName = track.name;
+                        recommendations += `<li>${artist} - ${trackName}</li>`;
+                    }
+
+                    recommendations += "</ul>";
+                } else {
+                    recommendations = `No song recommendations found for "${song}"`;
+                }
+
+                document.getElementById("songRecommendations").innerHTML =
+                    "<h2>Song Recommendations:</h2>" + recommendations;
+            })
+            .catch(function (error) {
+                console.log("An error occurred:", error);
+            });
+    }
+
+
+let savedRecommendations = [];
+
+function saveRecommendation(recommendation) {
+  savedRecommendations.push(recommendation);
+  updateSavedList();
+}
+
+function updateSavedList() {
+  const savedList = document.getElementById("savedList");
+  savedList.innerHTML = ""; // Clear the list before updating
+
+  savedRecommendations.forEach((recommendation) => {
+    const listItem = document.createElement("li");
+    listItem.textContent = recommendation;
+    savedList.appendChild(listItem);
+  });
+}
+
+function handleSaveButtonClick(recommendation, saveButton) {
+  saveRecommendation(recommendation);
+  saveButton.textContent = "Saved";
+  saveButton.style.backgroundColor = "#4CAF50";
+  saveButton.style.color = "#fff";
+  saveButton.disabled = true; // Disable the button after clicking
+}
+
+artistRecommendations.addEventListener("click", function (event) {
+  if (event.target.tagName === "LI") {
+    const recommendation = event.target.textContent;
+    const saveButton = document.createElement("button");
+    saveButton.textContent = "Save";
+    saveButton.addEventListener("click", function () {
+      handleSaveButtonClick(recommendation, saveButton);
+    });
+    event.target.appendChild(saveButton);
+  }
+});
+
+songRecommendations.addEventListener("click", function (event) {
+  if (event.target.tagName === "LI") {
+    const recommendation = event.target.textContent;
+    const saveButton = document.createElement("button");
+    saveButton.textContent = "Save";
+    saveButton.addEventListener("click", function () {
+      handleSaveButtonClick(recommendation, saveButton);
+    });
+    event.target.appendChild(saveButton);
+  }
+});
+
+
+
+
+</script>
+</body>
+</html>
